@@ -12,6 +12,12 @@ st.set_page_config(page_title="SmartExploreAI", page_icon="📍", layout="wide")
 st.title("📍 SmartExploreAI Prototype")
 st.write("Discover nearby places using open data sources.")
 
+# Initialize session state
+if "places_data" not in st.session_state:
+    st.session_state.places_data = []
+if "map" not in st.session_state:
+    st.session_state.map = None
+
 # Input fields
 location = st.text_input("Enter location (e.g., Ahmedabad, India)", "Ahmedabad, India")
 category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park", "Shopping Mall"])
@@ -59,7 +65,6 @@ if st.button("🔍 Search"):
 
                         for i, place in enumerate(elements, 1):
                             try:
-                                # Defensive check for required fields
                                 if not all(k in place for k in ["lat", "lon", "tags"]):
                                     continue
 
@@ -91,12 +96,9 @@ if st.button("🔍 Search"):
                             except Exception:
                                 st.warning("⚠️ Skipped a place due to missing or invalid data.")
 
-                        st.subheader("🗺️ Map View")
-                        st_folium(map, width=700, height=500)
-
-                        df = pd.DataFrame(places_data)
-                        csv = df.to_csv(index=False).encode("utf-8")
-                        st.download_button("📥 Download Results as CSV", data=csv, file_name="places.csv", mime="text/csv")
+                        # Save to session state
+                        st.session_state.places_data = places_data
+                        st.session_state.map = map
                     else:
                         st.warning(f"No {category.lower()}s found near {location}.")
                 else:
@@ -106,6 +108,15 @@ if st.button("🔍 Search"):
 
         except Exception as e:
             st.error(f"❌ Unexpected error: {str(e)}")
+
+# Render results from session state
+if st.session_state.places_data:
+    st.subheader("🗺️ Map View")
+    st_folium(st.session_state.map, width=700, height=500)
+
+    df = pd.DataFrame(st.session_state.places_data)
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button("📥 Download Results as CSV", data=csv, file_name="places.csv", mime="text/csv")
 
 # Footer
 st.markdown("---")

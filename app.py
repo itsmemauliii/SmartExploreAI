@@ -37,13 +37,6 @@ if st.button("🔍 Search"):
         with st.spinner("Fetching places..."):
             try:
                 # Using a different geocoding service due to connection issues with Nominatim
-                geocoding_url = "https://geocoding-api.open-route-service.com/geocode/search"
-                geocoding_params = {
-                    "text": location,
-                    "api_key": "YOUR_OPENROUTESERVICE_API_KEY", # This service requires an API key
-                }
-                
-                # Let's use a simpler, no-key-needed geocoding service, Photon.
                 geocoding_url = "https://photon.komoot.io/api/"
                 geocoding_params = {
                     "q": location,

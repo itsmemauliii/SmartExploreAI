@@ -6,7 +6,7 @@ import json
 # Streamlit App UI
 # ---------------------------
 st.set_page_config(page_title="Local Discovery App", page_icon="📍", layout="wide")
-st.title("📍 Smart Explore AI App")
+st.title("📍 Local Discovery App")
 st.write("Find restaurants, cafes, and interesting places near you!")
 
 # Input fields
@@ -26,8 +26,8 @@ CATEGORY_MAPPING = {
     "Shopping Mall": "shopping"
 }
 
-# The single, correct V3 endpoint. The others are deprecated.
-FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
+# The new, correct V4 endpoint as per Foursquare documentation.
+FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v2/venues/search"
 
 # Trigger search
 if st.button("🔍 Search"):
@@ -36,24 +36,26 @@ if st.button("🔍 Search"):
     else:
         with st.spinner("Fetching places..."):
             try:
-                # IMPORTANT: Foursquare V3 API requires 'Bearer' prefix for the authorization header
+                # IMPORTANT: Foursquare V2 API requires 'Bearer' prefix for the authorization header
                 headers = {
                     "Accept": "application/json",
                     "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
                 }
-
-                # Parameters for the search
+                
+                # Parameters for the search based on the V2 API documentation.
+                # 'query' and 'near' are still valid, but the API version is critical.
                 params = {
                     "query": CATEGORY_MAPPING.get(category, category.lower()),
                     "near": location,
-                    "limit": 10
+                    "limit": 10,
+                    "v": "20240726"  # The V2 API requires a version parameter.
                 }
 
                 response = requests.get(FOURSQUARE_ENDPOINT, headers=headers, params=params, timeout=10)
 
                 if response.status_code == 200:
                     data = response.json()
-                    results = data.get("results", [])
+                    results = data.get("response", {}).get("venues", [])
 
                     if results:
                         st.success(f"✅ Found {len(results)} places!")
@@ -66,8 +68,8 @@ if st.button("🔍 Search"):
 
                                 # Address
                                 location_info = place.get('location', {})
-                                address = location_info.get('formatted_address', 'Address not available')
-                                st.write(f"📍 **Address:** {address}")
+                                address = location_info.get('formattedAddress', 'Address not available')
+                                st.write(f"📍 **Address:** {', '.join(address)}")
 
                                 # Category
                                 categories = place.get('categories', [])
@@ -75,16 +77,12 @@ if st.button("🔍 Search"):
                                     category_name = categories[0].get('name', 'N/A')
                                     st.write(f"🏷️ **Category:** {category_name}")
 
-                                # Distance (if available)
-                                if 'distance' in place:
-                                    st.write(f"📏 **Distance:** {place['distance']} meters")
-
                             with col2:
                                 # Display category icon if available
                                 if categories and 'icon' in categories[0]:
                                     icon_info = categories[0]['icon']
                                     if 'prefix' in icon_info and 'suffix' in icon_info:
-                                        icon_url = f"{icon_info['prefix']}64{icon_info['suffix']}"
+                                        icon_url = f"{icon_info['prefix']}bg_64{icon_info['suffix']}"
                                         st.image(icon_url, width=64)
 
                             st.markdown("---")
@@ -93,7 +91,7 @@ if st.button("🔍 Search"):
 
                 elif response.status_code == 401:
                     st.error("❌ Invalid API Key. Please check your Foursquare API key and ensure it's valid.")
-                    st.write("For the v3 API, the key must be placed in the 'Authorization' header with a 'Bearer' prefix.")
+                    st.write("For the v2 API, the key must be placed in the 'Authorization' header with a 'Bearer' prefix.")
 
                 elif response.status_code == 429:
                     st.error("❌ Rate limit exceeded. Please try again later.")

@@ -1,6 +1,18 @@
 import streamlit as st
 import requests
 
+url = "https://api.foursquare.com/v3/places/search"
+headers = {"Authorization": "fsq3HkSKnobCiEEZdDKEO9WA8xUMxxlzCpOBbt/dczhhp1s="}
+params = {
+    "query": "restaurant",
+    "near": "Ahmedabad, India",
+    "limit": 1
+}
+
+res = requests.get(url, headers=headers, params=params)
+print(res.status_code)
+print(res.text)
+
 # Load API key from Streamlit secrets
 FOURSQUARE_API_KEY = st.secrets["FOURSQUARE_API_KEY"]
 headers = {"Authorization": FOURSQUARE_API_KEY}

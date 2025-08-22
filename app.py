@@ -26,8 +26,8 @@ CATEGORY_MAPPING = {
     "Shopping Mall": "shopping"
 }
 
-# The new, correct V2 endpoint as per Foursquare documentation.
-FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v2/venues/search"
+# The single, correct V3 endpoint. The others are deprecated.
+FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
 
 # Trigger search
 if st.button("🔍 Search"):
@@ -36,56 +36,13 @@ if st.button("🔍 Search"):
     else:
         with st.spinner("Fetching places..."):
             try:
-                # The V2 API requires the API key to be passed as a query parameter.
-                # The `Authorization` header is no longer needed for this version.
-                headers = {
-                    "Accept": "application/json"
-                }
-                
-                # Parameters for the search based on the V2 API documentation.
-                # 'query' and 'near' are still valid, but the API version is critical.
-                params = {
-                    "client_id": FOURSQUARE_API_KEY,  # Use client_id for V2
-                    "client_secret": FOURSQUARE_API_KEY, # This is wrong. V2 uses a different method. Let's fix this properly.
-                    "query": CATEGORY_MAPPING.get(category, category.lower()),
-                    "near": location,
-                    "limit": 10,
-                    "v": "20240726"
-                }
-                
-                # Let's try the correct V2 authentication method using 'client_id' and 'client_secret'
-                
-                params = {
-                    "client_id": "JBKXCSXHLWKWYWG3GTXRYLZD3E1QGAPTQGG31AS3WMZHE5PK", # Re-added the client ID
-                    "client_secret": "KPFNJHZWWHMFAJVUQMPFYUH1TL203CGZN3JUI2LPKKEZUTNMY", # Re-added the client secret
-                    "query": CATEGORY_MAPPING.get(category, category.lower()),
-                    "near": location,
-                    "limit": 10,
-                    "v": "20240726"
-                }
-
-                # Let's try the correct V2 authentication method using 'oauth_token'
-                # The user provided a Service API Key, which is not a V2 token.
-                # So the provided key is invalid for this endpoint.
-                # Let's revert back to the V3 endpoint which uses the Service API Key with a Bearer token.
-                
-                FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
+                # IMPORTANT: Foursquare V3 API requires 'Bearer' prefix for the authorization header
                 headers = {
                     "Accept": "application/json",
                     "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
                 }
-
-                # Let's add a test to see what kind of key the user has.
-                if FOURSQUARE_API_KEY.startswith("fsq3"):
-                    FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
-                    headers = {
-                        "Accept": "application/json",
-                        "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
-                    }
-                else:
-                    st.error("❌ The provided API key does not look like a Foursquare v3 key.")
-                    return
                 
+                # Parameters for the search
                 params = {
                     "query": CATEGORY_MAPPING.get(category, category.lower()),
                     "near": location,
@@ -145,4 +102,3 @@ if st.button("🔍 Search"):
                 st.error(f"❌ Network error: {str(e)}")
             except Exception as e:
                 st.error(f"❌ Unexpected error: {str(e)}")
-

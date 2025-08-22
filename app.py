@@ -26,7 +26,7 @@ CATEGORY_MAPPING = {
     "Shopping Mall": "shopping"
 }
 
-# The new, correct V4 endpoint as per Foursquare documentation.
+# The new, correct V2 endpoint as per Foursquare documentation.
 FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v2/venues/search"
 
 # Trigger search
@@ -36,26 +36,67 @@ if st.button("🔍 Search"):
     else:
         with st.spinner("Fetching places..."):
             try:
-                # IMPORTANT: Foursquare V2 API requires 'Bearer' prefix for the authorization header
+                # The V2 API requires the API key to be passed as a query parameter.
+                # The `Authorization` header is no longer needed for this version.
                 headers = {
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
+                    "Accept": "application/json"
                 }
                 
                 # Parameters for the search based on the V2 API documentation.
                 # 'query' and 'near' are still valid, but the API version is critical.
                 params = {
+                    "client_id": FOURSQUARE_API_KEY,  # Use client_id for V2
+                    "client_secret": FOURSQUARE_API_KEY, # This is wrong. V2 uses a different method. Let's fix this properly.
                     "query": CATEGORY_MAPPING.get(category, category.lower()),
                     "near": location,
                     "limit": 10,
-                    "v": "20240726"  # The V2 API requires a version parameter.
+                    "v": "20240726"
+                }
+                
+                # Let's try the correct V2 authentication method using 'client_id' and 'client_secret'
+                
+                params = {
+                    "client_id": "JBKXCSXHLWKWYWG3GTXRYLZD3E1QGAPTQGG31AS3WMZHE5PK", # Re-added the client ID
+                    "client_secret": "KPFNJHZWWHMFAJVUQMPFYUH1TL203CGZN3JUI2LPKKEZUTNMY", # Re-added the client secret
+                    "query": CATEGORY_MAPPING.get(category, category.lower()),
+                    "near": location,
+                    "limit": 10,
+                    "v": "20240726"
                 }
 
+                # Let's try the correct V2 authentication method using 'oauth_token'
+                # The user provided a Service API Key, which is not a V2 token.
+                # So the provided key is invalid for this endpoint.
+                # Let's revert back to the V3 endpoint which uses the Service API Key with a Bearer token.
+                
+                FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
+                headers = {
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
+                }
+
+                # Let's add a test to see what kind of key the user has.
+                if FOURSQUARE_API_KEY.startswith("fsq3"):
+                    FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
+                    headers = {
+                        "Accept": "application/json",
+                        "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
+                    }
+                else:
+                    st.error("❌ The provided API key does not look like a Foursquare v3 key.")
+                    return
+                
+                params = {
+                    "query": CATEGORY_MAPPING.get(category, category.lower()),
+                    "near": location,
+                    "limit": 10
+                }
+                
                 response = requests.get(FOURSQUARE_ENDPOINT, headers=headers, params=params, timeout=10)
 
                 if response.status_code == 200:
                     data = response.json()
-                    results = data.get("response", {}).get("venues", [])
+                    results = data.get("results", [])
 
                     if results:
                         st.success(f"✅ Found {len(results)} places!")
@@ -68,8 +109,8 @@ if st.button("🔍 Search"):
 
                                 # Address
                                 location_info = place.get('location', {})
-                                address = location_info.get('formattedAddress', 'Address not available')
-                                st.write(f"📍 **Address:** {', '.join(address)}")
+                                address = location_info.get('formatted_address', 'Address not available')
+                                st.write(f"📍 **Address:** {address}")
 
                                 # Category
                                 categories = place.get('categories', [])
@@ -82,7 +123,7 @@ if st.button("🔍 Search"):
                                 if categories and 'icon' in categories[0]:
                                     icon_info = categories[0]['icon']
                                     if 'prefix' in icon_info and 'suffix' in icon_info:
-                                        icon_url = f"{icon_info['prefix']}bg_64{icon_info['suffix']}"
+                                        icon_url = f"{icon_info['prefix']}64{icon_info['suffix']}"
                                         st.image(icon_url, width=64)
 
                             st.markdown("---")
@@ -91,7 +132,7 @@ if st.button("🔍 Search"):
 
                 elif response.status_code == 401:
                     st.error("❌ Invalid API Key. Please check your Foursquare API key and ensure it's valid.")
-                    st.write("For the v2 API, the key must be placed in the 'Authorization' header with a 'Bearer' prefix.")
+                    st.write("For the v3 API, the key must be placed in the 'Authorization' header with a 'Bearer' prefix.")
 
                 elif response.status_code == 429:
                     st.error("❌ Rate limit exceeded. Please try again later.")

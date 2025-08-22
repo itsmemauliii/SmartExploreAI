@@ -36,18 +36,24 @@ if st.button("🔍 Search"):
     else:
         with st.spinner("Fetching places..."):
             try:
-                # To get latitude and longitude from the location string
-                geocoding_url = "https://nominatim.openstreetmap.org/search"
+                # Using a different geocoding service due to connection issues with Nominatim
+                geocoding_url = "https://geocoding-api.open-route-service.com/geocode/search"
+                geocoding_params = {
+                    "text": location,
+                    "api_key": "YOUR_OPENROUTESERVICE_API_KEY", # This service requires an API key
+                }
+                
+                # Let's use a simpler, no-key-needed geocoding service, Photon.
+                geocoding_url = "https://photon.komoot.io/api/"
                 geocoding_params = {
                     "q": location,
-                    "format": "json",
-                    "limit": 1
                 }
                 
                 geocoding_response = requests.get(geocoding_url, params=geocoding_params, timeout=10)
-                if geocoding_response.status_code == 200 and geocoding_response.json():
-                    lat = geocoding_response.json()[0]['lat']
-                    lon = geocoding_response.json()[0]['lon']
+                
+                if geocoding_response.status_code == 200 and geocoding_response.json().get('features'):
+                    lat = geocoding_response.json()['features'][0]['geometry']['coordinates'][1]
+                    lon = geocoding_response.json()['features'][0]['geometry']['coordinates'][0]
                     
                     # IMPORTANT: Foursquare V3 API requires 'Bearer' prefix for the authorization header
                     headers = {
@@ -119,4 +125,11 @@ if st.button("🔍 Search"):
                 st.error(f"❌ Unexpected error: {str(e)}")
 
 
-
+# Add footer with instructions
+st.markdown("---")
+st.markdown("### 📝 Instructions & Troubleshooting:")
+st.markdown("""
+1.  **Get a valid API key:** Visit the [Foursquare Developer Console](https://developer.foursquare.com/) to get your own API key.
+2.  **Replace the placeholder:** Copy your new API key and paste it into the `FOURSQUARE_API_KEY` variable at the top of the code.
+3.  Enter a location and select a category, then click Search.
+""")

@@ -18,7 +18,7 @@ category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park
 min_rating = st.slider("Minimum Rating", 0.0, 10.0, 4.0)
 
 # Foursquare Service API Key
-FOURSQUARE_API_KEY = "X5IILNDSTQROTBHVS52WA1W32EAYAE4NP42OH1VDAX3OBKVS"
+FOURSQUARE_API_KEY = "fsq3vdvqa3qXx6ToxhxRYbrLYZHrOAEkvGp2xR0R90MFU9A="
 
 CATEGORY_ID_MAPPING = {
     "Restaurant": "13065",

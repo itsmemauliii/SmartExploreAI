@@ -6,7 +6,7 @@ import json
 # Streamlit App UI
 # ---------------------------
 st.set_page_config(page_title="Local Discovery App", page_icon="📍", layout="wide")
-st.title("📍 Local Discovery App")
+st.title("📍 Smart Explore AI App")
 st.write("Find restaurants, cafes, and interesting places near you!")
 
 # Input fields
@@ -15,7 +15,7 @@ category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park
 
 # Your Foursquare API Key - IMPORTANT: Replace this with your actual key!
 # NOTE: The provided key is being used. If it still doesn't work, please generate a new one from Foursquare.
-FOURSQUARE_API_KEY = "fsq3PwJg5KEbPR+XgIXnKOBSoqw+EtL3+CWC+qzvbqy7yhc="
+FOURSQUARE_API_KEY = "5MUE3OVKAH1OVEOGWRVKDXBU1VTEGKCQZBGZ3T4AJZ4P0XYU"
 
 # Category mapping for better search results
 CATEGORY_MAPPING = {
@@ -106,3 +106,4 @@ if st.button("🔍 Search"):
                 st.error(f"❌ Network error: {str(e)}")
             except Exception as e:
                 st.error(f"❌ Unexpected error: {str(e)}")
+

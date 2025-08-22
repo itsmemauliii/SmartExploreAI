@@ -8,32 +8,28 @@ from geopy.distance import geodesic
 # ---------------------------
 # Streamlit App UI
 # ---------------------------
-st.set_page_config(page_title="Local Discovery App", page_icon="📍", layout="wide")
-st.title("📍 Local Discovery App")
-st.write("Find restaurants, cafes, and interesting places near you!")
+st.set_page_config(page_title="SmartExploreAI", page_icon="📍", layout="wide")
+st.title("📍 SmartExploreAI Prototype")
+st.write("Discover nearby places using open data sources.")
 
 # Input fields
 location = st.text_input("Enter location (e.g., Ahmedabad, India)", "Ahmedabad, India")
 category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park", "Shopping Mall"])
-min_rating = st.slider("Minimum Rating", 0.0, 10.0, 4.0)
 
-# Foursquare Service API Key
-FOURSQUARE_API_KEY = "fsq3vdvqa3qXx6ToxhxRYbrLYZHrOAEkvGp2xR0R90MFU9A="
-
-CATEGORY_ID_MAPPING = {
-    "Restaurant": "13065",
-    "Cafe": "13032",
-    "Hotel": "19014",
-    "Park": "16032",
-    "Shopping Mall": "19009"
+# Overpass tags for each category
+OVERPASS_TAGS = {
+    "Restaurant": "amenity=restaurant",
+    "Cafe": "amenity=cafe",
+    "Hotel": "tourism=hotel",
+    "Park": "leisure=park",
+    "Shopping Mall": "shop=mall"
 }
-
-FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
 
 # Trigger search
 if st.button("🔍 Search"):
-    with st.spinner("Fetching places..."):
+    with st.spinner("Locating places..."):
         try:
+            # Geocode location using Photon
             geo_url = "https://photon.komoot.io/api/"
             geo_params = {"q": location}
             geo_response = requests.get(geo_url, params=geo_params, timeout=10)
@@ -42,76 +38,46 @@ if st.button("🔍 Search"):
                 lat = geo_response.json()['features'][0]['geometry']['coordinates'][1]
                 lon = geo_response.json()['features'][0]['geometry']['coordinates'][0]
 
-                headers = {
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
-                }
-
-                params = {
-                    "ll": f"{lat},{lon}",
-                    "categories": CATEGORY_ID_MAPPING.get(category, "13065"),
-                    "limit": 20,
-                    "fields": "fsq_id,name,location,categories,rating,photos,geocodes,hours"
-                }
-
-                response = requests.get(FOURSQUARE_ENDPOINT, headers=headers, params=params, timeout=10)
+                # Build Overpass query
+                tag = OVERPASS_TAGS.get(category, "amenity=restaurant")
+                overpass_query = f"""
+                [out:json];
+                node[{tag}](around:3000,{lat},{lon});
+                out;
+                """
+                overpass_url = "https://overpass-api.de/api/interpreter"
+                response = requests.post(overpass_url, data=overpass_query, timeout=20)
 
                 if response.status_code == 200:
                     data = response.json()
-                    results = data.get("results", [])
+                    elements = data.get("elements", [])
 
-                    filtered_results = [place for place in results if place.get("rating", 0) >= min_rating]
-
-                    if filtered_results:
-                        st.success(f"✅ Found {len(filtered_results)} places with rating ≥ {min_rating}")
+                    if elements:
+                        st.success(f"✅ Found {len(elements)} {category.lower()}s near {location}")
                         map = folium.Map(location=[lat, lon], zoom_start=13)
                         places_data = []
 
-                        for i, place in enumerate(filtered_results, 1):
-                            name = place.get("name", "Unknown")
-                            loc = place.get("location", {})
-                            address = loc.get("formatted_address", "Address not available")
-                            categories = place.get("categories", [])
-                            category_name = categories[0].get("name", "N/A") if categories else "N/A"
-                            rating = place.get("rating", "Not rated")
-                            lat_p = place.get("geocodes", {}).get("main", {}).get("latitude", lat)
-                            lon_p = place.get("geocodes", {}).get("main", {}).get("longitude", lon)
-                            is_open = place.get("hours", {}).get("is_open", None)
+                        for i, place in enumerate(elements, 1):
+                            name = place.get("tags", {}).get("name", "Unnamed")
+                            lat_p = place.get("lat", lat)
+                            lon_p = place.get("lon", lon)
                             distance_km = geodesic((lat, lon), (lat_p, lon_p)).km
 
                             folium.Marker(
                                 location=[lat_p, lon_p],
-                                popup=f"{name}\n{address}",
+                                popup=f"{name}",
                                 tooltip=name
                             ).add_to(map)
 
                             st.subheader(f"{i}. {name}")
-                            st.write(f"📍 **Address:** {address}")
-                            st.write(f"🏷️ **Category:** {category_name}")
-                            st.write(f"⭐ **Rating:** {rating}")
                             st.write(f"📏 **Distance:** {distance_km:.2f} km")
-
-                            if is_open is not None:
-                                st.write("🟢 Open Now" if is_open else "🔴 Closed")
-
-                            photos = place.get("photos", [])
-                            if photos:
-                                photo = photos[0]
-                                photo_url = f"{photo['prefix']}original{photo['suffix']}"
-                                st.image(photo_url, width=300)
-
                             maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_p},{lon_p}"
                             st.markdown(f"[🗺️ Get Directions]({maps_url})", unsafe_allow_html=True)
-
                             st.markdown("---")
 
                             places_data.append({
                                 "Name": name,
-                                "Address": address,
-                                "Category": category_name,
-                                "Rating": rating,
                                 "Distance (km)": round(distance_km, 2),
-                                "Open Now": "Yes" if is_open else "No",
                                 "Latitude": lat_p,
                                 "Longitude": lon_p
                             })
@@ -122,25 +88,21 @@ if st.button("🔍 Search"):
                         df = pd.DataFrame(places_data)
                         csv = df.to_csv(index=False).encode("utf-8")
                         st.download_button("📥 Download Results as CSV", data=csv, file_name="places.csv", mime="text/csv")
-
                     else:
-                        st.warning(f"No places found with rating ≥ {min_rating} near {location}.")
+                        st.warning(f"No {category.lower()}s found near {location}.")
                 else:
-                    st.error(f"❌ API Request Failed. Status code: {response.status_code}")
-                    st.code(response.text)
+                    st.error(f"❌ Overpass API error. Status code: {response.status_code}")
             else:
-                st.error("❌ Could not get location coordinates. Please check the spelling of the location.")
+                st.error("❌ Could not get location coordinates. Please check the spelling.")
 
-        except requests.exceptions.RequestException as e:
-            st.error(f"❌ Network error: {str(e)}")
         except Exception as e:
             st.error(f"❌ Unexpected error: {str(e)}")
 
 # Footer
 st.markdown("---")
-st.markdown("### 📝 Tips:")
+st.markdown("### 📝 Notes:")
 st.markdown("""
-- Use precise location names for better results.
-- Ratings and photos may not be available for all places.
-- You can download the results and use them for analysis or sharing.
+- This prototype uses open data from OpenStreetMap via Overpass API.
+- No API key is required.
+- Results may vary based on location coverage.
 """)

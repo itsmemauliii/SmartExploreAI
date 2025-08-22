@@ -58,29 +58,38 @@ if st.button("🔍 Search"):
                         places_data = []
 
                         for i, place in enumerate(elements, 1):
-                            name = place.get("tags", {}).get("name", "Unnamed")
-                            lat_p = place.get("lat", lat)
-                            lon_p = place.get("lon", lon)
-                            distance_km = geodesic((lat, lon), (lat_p, lon_p)).km
+                            try:
+                                # Defensive check for required fields
+                                if not all(k in place for k in ["lat", "lon", "tags"]):
+                                    continue
 
-                            folium.Marker(
-                                location=[lat_p, lon_p],
-                                popup=f"{name}",
-                                tooltip=name
-                            ).add_to(map)
+                                tags = place["tags"]
+                                name = tags.get("name") or tags.get("amenity") or tags.get("shop") or tags.get("tourism") or "Unnamed"
+                                lat_p = place["lat"]
+                                lon_p = place["lon"]
+                                distance_km = geodesic((lat, lon), (lat_p, lon_p)).km
 
-                            st.subheader(f"{i}. {name}")
-                            st.write(f"📏 **Distance:** {distance_km:.2f} km")
-                            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_p},{lon_p}"
-                            st.markdown(f"[🗺️ Get Directions]({maps_url})", unsafe_allow_html=True)
-                            st.markdown("---")
+                                folium.Marker(
+                                    location=[lat_p, lon_p],
+                                    popup=f"{name}",
+                                    tooltip=name
+                                ).add_to(map)
 
-                            places_data.append({
-                                "Name": name,
-                                "Distance (km)": round(distance_km, 2),
-                                "Latitude": lat_p,
-                                "Longitude": lon_p
-                            })
+                                st.subheader(f"{i}. {name}")
+                                st.write(f"📏 **Distance:** {distance_km:.2f} km")
+                                maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_p},{lon_p}"
+                                st.markdown(f"[🗺️ Get Directions]({maps_url})", unsafe_allow_html=True)
+                                st.markdown("---")
+
+                                places_data.append({
+                                    "Name": name,
+                                    "Distance (km)": round(distance_km, 2),
+                                    "Latitude": lat_p,
+                                    "Longitude": lon_p
+                                })
+
+                            except Exception:
+                                st.warning("⚠️ Skipped a place due to missing or invalid data.")
 
                         st.subheader("🗺️ Map View")
                         st_folium(map, width=700, height=500)

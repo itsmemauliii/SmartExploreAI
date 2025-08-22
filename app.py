@@ -1,6 +1,9 @@
 import streamlit as st
 import requests
-import json
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
+from geopy.distance import geodesic
 
 # ---------------------------
 # Streamlit App UI
@@ -12,117 +15,142 @@ st.write("Find restaurants, cafes, and interesting places near you!")
 # Input fields
 location = st.text_input("Enter location (e.g., Ahmedabad, India)", "Ahmedabad, India")
 category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park", "Shopping Mall"])
+min_rating = st.slider("Minimum Rating", 0.0, 10.0, 4.0)
 
-# Your Foursquare API Key - IMPORTANT: Replace this with your actual key!
-# NOTE: The provided key is being used. If it still doesn't work, please generate a new one from Foursquare.
-FOURSQUARE_API_KEY = "5MUE3OVKAH1OVEOGWRVKDXBU1VTEGKCQZBGZ3T4AJZ4P0XYU"
+# Foursquare Service API Key
+FOURSQUARE_API_KEY = "X5IILNDSTQROTBHVS52WA1W32EAYAE4NP42OH1VDAX3OBKVS"
 
-# Category mapping for better search results
-CATEGORY_MAPPING = {
-    "Restaurant": "restaurant",
-    "Cafe": "cafe",
-    "Hotel": "hotel",
-    "Park": "park",
-    "Shopping Mall": "shopping"
+CATEGORY_ID_MAPPING = {
+    "Restaurant": "13065",
+    "Cafe": "13032",
+    "Hotel": "19014",
+    "Park": "16032",
+    "Shopping Mall": "19009"
 }
 
-# The single, correct V3 endpoint. The others are deprecated.
 FOURSQUARE_ENDPOINT = "https://api.foursquare.com/v3/places/search"
 
 # Trigger search
 if st.button("🔍 Search"):
-    if FOURSQUARE_API_KEY == "YOUR_API_KEY_HERE":
-        st.error("Please replace 'YOUR_API_KEY_HERE' with your actual Foursquare API key.")
-    else:
-        with st.spinner("Fetching places..."):
-            try:
-                # Using a different geocoding service due to connection issues with Nominatim
-                geocoding_url = "https://photon.komoot.io/api/"
-                geocoding_params = {
-                    "q": location,
+    with st.spinner("Fetching places..."):
+        try:
+            geo_url = "https://photon.komoot.io/api/"
+            geo_params = {"q": location}
+            geo_response = requests.get(geo_url, params=geo_params, timeout=10)
+
+            if geo_response.status_code == 200 and geo_response.json().get('features'):
+                lat = geo_response.json()['features'][0]['geometry']['coordinates'][1]
+                lon = geo_response.json()['features'][0]['geometry']['coordinates'][0]
+
+                headers = {
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
                 }
-                
-                geocoding_response = requests.get(geocoding_url, params=geocoding_params, timeout=10)
-                
-                if geocoding_response.status_code == 200 and geocoding_response.json().get('features'):
-                    lat = geocoding_response.json()['features'][0]['geometry']['coordinates'][1]
-                    lon = geocoding_response.json()['features'][0]['geometry']['coordinates'][0]
-                    
-                    # IMPORTANT: Foursquare V3 API requires 'Bearer' prefix for the authorization header
-                    headers = {
-                        "Accept": "application/json",
-                        "Authorization": f"Bearer {FOURSQUARE_API_KEY}"
-                    }
-                    
-                    # Parameters for the search
-                    params = {
-                        "query": CATEGORY_MAPPING.get(category, category.lower()),
-                        "ll": f"{lat},{lon}", # Correctly using latitude and longitude
-                        "limit": 10
-                    }
-                    
-                    response = requests.get(FOURSQUARE_ENDPOINT, headers=headers, params=params, timeout=10)
 
-                    if response.status_code == 200:
-                        data = response.json()
-                        results = data.get("results", [])
+                params = {
+                    "ll": f"{lat},{lon}",
+                    "categories": CATEGORY_ID_MAPPING.get(category, "13065"),
+                    "limit": 20,
+                    "fields": "fsq_id,name,location,categories,rating,photos,geocodes,hours"
+                }
 
-                        if results:
-                            st.success(f"✅ Found {len(results)} places!")
-                            for i, place in enumerate(results, 1):
-                                # Create columns for a clean layout
-                                col1, col2 = st.columns([3, 1])
+                response = requests.get(FOURSQUARE_ENDPOINT, headers=headers, params=params, timeout=10)
 
-                                with col1:
-                                    st.subheader(f"{i}. {place.get('name', 'Unknown Name')}")
+                if response.status_code == 200:
+                    data = response.json()
+                    results = data.get("results", [])
 
-                                    # Address
-                                    location_info = place.get('location', {})
-                                    address = location_info.get('formatted_address', 'Address not available')
-                                    st.write(f"📍 **Address:** {address}")
+                    # Filter by rating
+                    filtered_results = [place for place in results if place.get("rating", 0) >= min_rating]
 
-                                    # Category
-                                    categories = place.get('categories', [])
-                                    if categories:
-                                        category_name = categories[0].get('name', 'N/A')
-                                        st.write(f"🏷️ **Category:** {category_name}")
+                    if filtered_results:
+                        st.success(f"✅ Found {len(filtered_results)} places with rating ≥ {min_rating}")
+                        map = folium.Map(location=[lat, lon], zoom_start=13)
+                        places_data = []
 
-                                with col2:
-                                    # Display category icon if available
-                                    if categories and 'icon' in categories[0]:
-                                        icon_info = categories[0]['icon']
-                                        if 'prefix' in icon_info and 'suffix' in icon_info:
-                                            icon_url = f"{icon_info['prefix']}64{icon_info['suffix']}"
-                                            st.image(icon_url, width=64)
+                        for i, place in enumerate(filtered_results, 1):
+                            name = place.get("name", "Unknown")
+                            loc = place.get("location", {})
+                            address = loc.get("formatted_address", "Address not available")
+                            categories = place.get("categories", [])
+                            category_name = categories[0].get("name", "N/A") if categories else "N/A"
+                            rating = place.get("rating", "Not rated")
+                            lat_p = place.get("geocodes", {}).get("main", {}).get("latitude", lat)
+                            lon_p = place.get("geocodes", {}).get("main", {}).get("longitude", lon)
+                            is_open = place.get("hours", {}).get("is_open", None)
 
-                                st.markdown("---")
-                        else:
-                            st.warning(f"No results found for {category} near {location}.")
+                            # Distance
+                            distance_km = geodesic((lat, lon), (lat_p, lon_p)).km
 
-                    elif response.status_code == 401:
-                        st.error("❌ Invalid API Key. Please check your Foursquare API key and ensure it's valid.")
-                        st.write("For the v3 API, the key must be placed in the 'Authorization' header with a 'Bearer' prefix.")
+                            # Map marker
+                            folium.Marker(
+                                location=[lat_p, lon_p],
+                                popup=f"{name}\n{address}",
+                                tooltip=name
+                            ).add_to(map)
 
-                    elif response.status_code == 429:
-                        st.error("❌ Rate limit exceeded. Please try again later.")
-                    
+                            # Display
+                            st.subheader(f"{i}. {name}")
+                            st.write(f"📍 **Address:** {address}")
+                            st.write(f"🏷️ **Category:** {category_name}")
+                            st.write(f"⭐ **Rating:** {rating}")
+                            st.write(f"📏 **Distance:** {distance_km:.2f} km")
+
+                            if is_open is not None:
+                                st.write("🟢 Open Now" if is_open else "🔴 Closed")
+
+                            # Photo
+                            photos = place.get("photos", [])
+                            if photos:
+                                photo = photos[0]
+                                photo_url = f"{photo['prefix']}original{photo['suffix']}"
+                                st.image(photo_url, width=300)
+
+                            # Google Maps link
+                            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_p},{lon_p}"
+                            st.markdown(f"[🗺️ Get Directions]({maps_url})", unsafe_allow_html=True)
+
+                            st.markdown("---")
+
+                            # Collect for export
+                            places_data.append({
+                                "Name": name,
+                                "Address": address,
+                                "Category": category_name,
+                                "Rating": rating,
+                                "Distance (km)": round(distance_km, 2),
+                                "Open Now": "Yes" if is_open else "No",
+                                "Latitude": lat_p,
+                                "Longitude": lon_p
+                            })
+
+                        # Map view
+                        st.subheader("🗺️ Map View")
+                        st_folium(map, width=700, height=500)
+
+                        # Export
+                        df = pd.DataFrame(places_data)
+                        csv = df.to_csv(index=False).encode("utf-8")
+                        st.download_button("📥 Download Results as CSV", data=csv, file_name="places.csv", mime="text/csv")
+
                     else:
-                        st.error(f"❌ API Request Failed. Status code: {response.status_code}")
-                        st.code(response.text)
+                        st.warning(f"No places found with rating ≥ {min_rating} near {location}.")
                 else:
-                    st.error("❌ Could not get location coordinates. Please check the spelling of the location.")
+                    st.error(f"❌ API Request Failed. Status code: {response.status_code}")
+                    st.code(response.text)
+            else:
+                st.error("❌ Could not get location coordinates. Please check the spelling of the location.")
 
-            except requests.exceptions.RequestException as e:
-                st.error(f"❌ Network error: {str(e)}")
-            except Exception as e:
-                st.error(f"❌ Unexpected error: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"❌ Network error: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ Unexpected error: {str(e)}")
 
-
-# Add footer with instructions
+# Footer
 st.markdown("---")
-st.markdown("### 📝 Instructions & Troubleshooting:")
+st.markdown("### 📝 Tips:")
 st.markdown("""
-1.  **Get a valid API key:** Visit the [Foursquare Developer Console](https://developer.foursquare.com/) to get your own API key.
-2.  **Replace the placeholder:** Copy your new API key and paste it into the `FOURSQUARE_API_KEY` variable at the top of the code.
-3.  Enter a location and select a category, then click Search.
+- Use precise location names for better results.
+- Ratings and photos may not be available for all places.
+- You can download the results and use them for analysis or sharing.
 """)

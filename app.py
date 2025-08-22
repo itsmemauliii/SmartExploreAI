@@ -14,6 +14,7 @@ location = st.text_input("Enter location (e.g., Ahmedabad, India)", "Ahmedabad, 
 category = st.selectbox("Select Category", ["Restaurant", "Cafe", "Hotel", "Park", "Shopping Mall"])
 
 # Your Foursquare API Key - IMPORTANT: Replace this with your actual key!
+# NOTE: The provided key is being used. If it still doesn't work, please generate a new one from Foursquare.
 FOURSQUARE_API_KEY = "fsq3PwJg5KEbPR+XgIXnKOBSoqw+EtL3+CWC+qzvbqy7yhc="
 
 # Category mapping for better search results

@@ -60,7 +60,6 @@ if st.button("🔍 Search"):
                     data = response.json()
                     results = data.get("results", [])
 
-                    # Filter by rating
                     filtered_results = [place for place in results if place.get("rating", 0) >= min_rating]
 
                     if filtered_results:
@@ -78,18 +77,14 @@ if st.button("🔍 Search"):
                             lat_p = place.get("geocodes", {}).get("main", {}).get("latitude", lat)
                             lon_p = place.get("geocodes", {}).get("main", {}).get("longitude", lon)
                             is_open = place.get("hours", {}).get("is_open", None)
-
-                            # Distance
                             distance_km = geodesic((lat, lon), (lat_p, lon_p)).km
 
-                            # Map marker
                             folium.Marker(
                                 location=[lat_p, lon_p],
                                 popup=f"{name}\n{address}",
                                 tooltip=name
                             ).add_to(map)
 
-                            # Display
                             st.subheader(f"{i}. {name}")
                             st.write(f"📍 **Address:** {address}")
                             st.write(f"🏷️ **Category:** {category_name}")
@@ -99,20 +94,17 @@ if st.button("🔍 Search"):
                             if is_open is not None:
                                 st.write("🟢 Open Now" if is_open else "🔴 Closed")
 
-                            # Photo
                             photos = place.get("photos", [])
                             if photos:
                                 photo = photos[0]
                                 photo_url = f"{photo['prefix']}original{photo['suffix']}"
                                 st.image(photo_url, width=300)
 
-                            # Google Maps link
                             maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat_p},{lon_p}"
                             st.markdown(f"[🗺️ Get Directions]({maps_url})", unsafe_allow_html=True)
 
                             st.markdown("---")
 
-                            # Collect for export
                             places_data.append({
                                 "Name": name,
                                 "Address": address,
@@ -124,11 +116,9 @@ if st.button("🔍 Search"):
                                 "Longitude": lon_p
                             })
 
-                        # Map view
                         st.subheader("🗺️ Map View")
                         st_folium(map, width=700, height=500)
 
-                        # Export
                         df = pd.DataFrame(places_data)
                         csv = df.to_csv(index=False).encode("utf-8")
                         st.download_button("📥 Download Results as CSV", data=csv, file_name="places.csv", mime="text/csv")

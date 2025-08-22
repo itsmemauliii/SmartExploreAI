@@ -1,6 +1,10 @@
 import streamlit as st
 import requests
 
+# Load API key from Streamlit secrets
+FOURSQUARE_API_KEY = st.secrets["FOURSQUARE_API_KEY"]
+headers = {"Authorization": FOURSQUARE_API_KEY}
+
 # ---------------------------
 # Streamlit App UI
 # ---------------------------

@@ -49,4 +49,6 @@ Integrate ratings and reviews
 Deploy mobile version (Android/iOS)
 
 👋 Author
-Mauli Patel Freelance Data Analyst & Deep Learning Enthusiast 📍 Ahmedabad, India
+Mauli Patel 
+Freelance Data Analyst & Deep Learning Enthusiast 
+📍 Ahmedabad, India

@@ -13,10 +13,6 @@ res = requests.get(url, headers=headers, params=params)
 print(res.status_code)
 print(res.text)
 
-# Load API key from Streamlit secrets
-FOURSQUARE_API_KEY = st.secrets["FOURSQUARE_API_KEY"]
-headers = {"Authorization": FOURSQUARE_API_KEY}
-
 # ---------------------------
 # Streamlit App UI
 # ---------------------------

@@ -1,0 +1,25 @@
+# Privacy Policy for SmartExploreAI
+
+SmartExploreAI is a location-based discovery app that helps users find nearby restaurants, cafes, parks, and other venues. We value your privacy and are committed to protecting your personal information.
+
+## What We Collect
+- Location input (e.g., city name) to perform venue searches
+- No personal identifiers (name, email, etc.) are collected
+
+## How We Use Data
+- We use location data solely to query the Foursquare Places API
+- We do not store, share, or sell any user data
+
+## Third-Party Services
+- We use Foursquare Places API to fetch venue data
+- We use Streamlit for app hosting and interface
+
+## Cookies
+- This app may use cookies for session management (handled by Streamlit)
+
+## Your Rights
+- You may close the app at any time to stop data usage
+- No personal data is retained
+
+## Contact
+For questions, contact: mauli.patel@example.com

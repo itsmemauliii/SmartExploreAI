@@ -1,21 +1,21 @@
-# 📍 SmartExploreAI
+# SmartExploreAI
 
 SmartExploreAI is a location-based discovery app that helps users find nearby restaurants, cafes, parks, hotels, and shopping venues using open data sources. Built with Streamlit and powered by OpenStreetMap via the Overpass API, the app offers an intuitive interface for exploring local places without requiring any API keys.
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🔍 Search by location and category (e.g., Restaurant, Cafe, Park)
-- 🗺️ Interactive map view with clickable markers
-- 📏 Distance calculation from user-defined location
-- 🗺️ Google Maps directions integration
-- 📥 Download results as CSV for analysis or sharing
-- 🌐 No API key required — uses open data from OpenStreetMap
+- Search by location and category (e.g., Restaurant, Cafe, Park)
+- Interactive map view with clickable markers
+- Distance calculation from user-defined location
+- Google Maps directions integration
+- Download results as CSV for analysis or sharing
+- No API key required, uses open data from OpenStreetMap
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend/UI**: Streamlit
 - **Mapping**: Folium + Leaflet
@@ -24,13 +24,13 @@ SmartExploreAI is a location-based discovery app that helps users find nearby re
 - **Distance Calculation**: Geopy
 - **Data Export**: Pandas
 
-## 🔐 Privacy & Data Use
+## Privacy & Data Use
 SmartExploreAI does not collect or store personal identifiers. Location data is used only during the session to fetch nearby places and is never saved. See our Privacy Policy for details.
 
-## 📄 License
+## License
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 OpenStreetMap contributors
 
 Photon Geocoder by Komoot
@@ -39,7 +39,7 @@ Overpass API
 
 Streamlit community
 
-## 💡 Future Plans
+## Future Plans
 Add user login and favorites
 
 Expand to real-time GPS support
